@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Rapid Fire Speaking</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Arial Black', Arial, sans-serif;
+    background: #0f0f1a;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 24px 12px 40px;
+  }
+
+  h1 {
+    font-size: 24px;
+    letter-spacing: 4px;
+    color: #f39c12;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px #f39c12aa;
+    margin-bottom: 4px;
+  }
+  .subtitle { font-size: 12px; color: #666; letter-spacing: 2px; margin-bottom: 22px; }
+
+  .settings {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+    background: #1a1a2e;
+    border-radius: 14px;
+    padding: 14px 20px;
+    margin-bottom: 22px;
+    width: 100%;
+    max-width: 460px;
+  }
+  .s-item { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .s-item label { font-size: 10px; color: #777; letter-spacing: 1px; }
+  .s-item select {
+    background: #2a2a3e; color: white;
+    border: 1px solid #444; border-radius: 6px;
+    padding: 5px 10px; font-size: 13px; cursor: pointer;
+  }
+  .s-item input[type=range] {
+    -webkit-appearance: none;
+    width: 120px; height: 6px;
+    border-radius: 3px; background: #2a2a3e;
+    outline: none; cursor: pointer;
+  }
+  .s-item input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #f39c12; cursor: pointer;
+  }
+  .s-val { font-size: 15px; font-weight: bold; color: #f39c12; }
+
+  .card {
+    width: 100%; max-width: 460px;
+    background: #1a1a2e;
+    border-radius: 24px;
+    padding: 30px 24px 26px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 50px #f39c1215;
+    margin-bottom: 18px;
+    flex-direction: column;
+  }
+
+  #prog-bar {
+    position: absolute; top: 0; left: 0;
+    height: 5px; width: 100%;
+    background: linear-gradient(90deg, #3498db, #f39c12, #e74c3c);
+    transform-origin: left;
+    border-radius: 24px 24px 0 0;
+  }
+
+  .word-counter { font-size: 11px; color: #555; letter-spacing: 2px; margin-bottom: 14px; }
+
+  #hint-label {
+    font-size: 13px; color: #888; margin-bottom: 10px;
+    min-height: 18px; letter-spacing: 1px;
+  }
+
+  #big-word {
+    font-size: 58px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #fff;
+    text-shadow: 0 0 40px #3498dbcc;
+    line-height: 1.15;
+    word-break: break-word;
+    transition: opacity 0.15s;
+  }
+  #big-word.pop { animation: pop 0.3s ease; }
+  @keyframes pop {
+    0%   { transform: scale(1.4); opacity: 0; }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+
+  #speak-prompt {
+    font-size: 14px; color: #3498db;
+    margin-top: 12px; min-height: 20px;
+    font-style: italic; letter-spacing: 1px;
+  }
+
+  .ring-wrap {
+    position: relative; width: 130px; height: 130px;
+    margin: 18px auto 6px;
+  }
+  svg.ring { width: 130px; height: 130px; transform: rotate(-90deg); }
+  .rb { fill: none; stroke: #2a2a3e; stroke-width: 10; }
+  .rf { fill: none; stroke: #f39c12; stroke-width: 10; stroke-linecap: round;
+        transition: stroke-dashoffset 0.95s linear; }
+  .ring-time {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    font-size: 30px; font-weight: 900; color: #f39c12;
+  }
+  .ring-time.danger { color: #e74c3c; animation: blink 0.5s infinite alternate; }
+  @keyframes blink { from { opacity: 1; } to { opacity: 0.4; } }
+
+  #queue-preview {
+    display: flex; gap: 8px; justify-content: center;
+    flex-wrap: wrap; margin-bottom: 16px;
+    min-height: 34px;
+  }
+  .qw {
+    background: #1a1a2e; border-radius: 8px;
+    padding: 5px 12px; font-size: 13px; color: #555;
+    border: 1px solid #2a2a3e;
+  }
+  .qw.next { color: #f39c12; border-color: #f39c1244; }
+
+  #status {
+    font-size: 15px; font-weight: bold;
+    min-height: 22px; margin-bottom: 14px;
+    color: #3498db;
+  }
+
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    padding: 12px 28px; font-size: 15px; font-weight: bold;
+    border: none; border-radius: 10px; cursor: pointer;
+    letter-spacing: 1px; transition: transform 0.15s, opacity 0.15s;
+  }
+  .btn:active { transform: scale(0.95); opacity: 0.8; }
+  .btn-start  { background: #2ecc71; color: #0f0f1a; }
+  .btn-pause  { background: #f39c12; color: #0f0f1a; }
+  .btn-reset  { background: #e74c3c; color: white; }
+
+  #result {
+    display: none;
+    flex-direction: column; align-items: center; gap: 12px;
+    width: 100%; max-width: 460px;
+    background: #1a1a2e; border-radius: 22px;
+    padding: 30px 24px; text-align: center;
+  }
+  #result h2 { font-size: 26px; color: #f39c12; }
+  #result p  { color: #aaa; font-size: 15px; line-height: 1.7; }
+  #result button {
+    margin-top: 8px; padding: 12px 32px;
+    font-size: 16px; font-weight: bold;
+    background: #f39c12; color: #0f0f1a;
+    border: none; border-radius: 10px; cursor: pointer;
+  }
+
+  #mic-icon {
+    font-size: 36px;
+    animation: breathe 1.8s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%,100% { transform: scale(1); opacity: 0.8; }
+    50%      { transform: scale(1.2); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<h1>⚡ Rapid Fire</h1>
+<p class="subtitle">SPEAK THE WORD — NO TYPING NEEDED</p>
+
+<div class="settings">
+  <div class="s-item">
+    <label>CATEGORY</label>
+    <select id="cat" onchange="onSet()">
+      <option value="mixed" selected>🔀 Mixed</option>
+      <option value="emotion">😊 Emotions</option>
+      <option value="describe">🌟 Describe It</option>
+      <option value="action">🏃 Actions</option>
+      <option value="story">📖 Story Words</option>
+      <option value="debate">🗣️ Opinion Topics</option>
+    </select>
+  </div>
+  <div class="s-item">
+    <label>SECS / WORD</label>
+    <input type="range" id="spd" min="2" max="15" value="5" step="1" oninput="onSet()">
+    <span class="s-val" id="spd-v">5s</span>
+  </div>
+  <div class="s-item">
+    <label>WORDS</label>
+    <input type="range" id="cnt" min="3" max="25" value="10" step="1" oninput="onSet()">
+    <span class="s-val" id="cnt-v">10</span>
+  </div>
+</div>
+
+<div class="card" id="main-card">
+  <div id="prog-bar" style="transform:scaleX(1)"></div>
+  <div class="word-counter" id="wctr">WORD 1 / 10</div>
+  <div id="hint-label">Get ready to speak!</div>
+  <div id="big-word">?</div>
+  <div id="speak-prompt"></div>
+
+  <div class="ring-wrap">
+    <svg class="ring" viewBox="0 0 130 130">
+      <circle class="rb" cx="65" cy="65" r="55"/>
+      <circle class="rf" id="rf" cx="65" cy="65" r="55"
+        stroke-dasharray="345.4" stroke-dashoffset="0"/>
+    </svg>
+    <div class="ring-time" id="ring-t">—</div>
+  </div>
+</div>
+
+<div id="queue-preview"></div>
+
+<div id="status">Press START — then just speak! 🎙️</div>
+
+<div class="btns">
+  <button class="btn btn-start" onclick="startGame()">▶ START</button>
+  <button class="btn btn-pause" onclick="togglePause()">⏸ PAUSE</button>
+  <button class="btn btn-reset" onclick="resetGame()">↺ RESET</button>
+</div>
+
+<div id="result">
+  <div id="mic-icon">🎙️</div>
+  <h2>Round Complete!</h2>
+  <p id="result-words"></p>
+  <p style="color:#888;font-size:13px">Keep practising — your fluency improves every round!</p>
+  <button onclick="resetGame()">🔄 Go Again</button>
+</div>
+
+<script>
+const CIRC = 2 * Math.PI * 55;
+
+const BANKS = {
+  emotion: [
+    ["HAPPY","Tell me why you feel happy today"],
+    ["ANGRY","Describe a time you felt angry"],
+    ["EXCITED","What makes you feel most excited?"],
+    ["NERVOUS","When do you feel nervous?"],
+    ["PROUD","What achievement made you proud?"],
+    ["GRATEFUL","What are you grateful for today?"],
+    ["LONELY","How do you deal with feeling lonely?"],
+    ["CONFIDENT","How do you build confidence?"],
+    ["INSPIRED","What inspires you the most?"],
+    ["CALM","How do you stay calm under pressure?"]
+  ],
+  describe: [
+    ["SUNRISE","Describe a sunrise in detail"],
+    ["OCEAN","What does the ocean feel like?"],
+    ["CITY","Describe a busy city scene"],
+    ["FOREST","Walk me through a quiet forest"],
+    ["MARKET","Describe a busy market place"],
+    ["MUSIC","How does music make you feel?"],
+    ["RAIN","Describe the sound of rain"],
+    ["HOME","What makes a place feel like home?"],
+    ["COLOUR","Describe your favourite colour"],
+    ["SILENCE","What does silence feel like to you?"]
+  ],
+  action: [
+    ["RUN","Explain why running is important"],
+    ["COOK","Describe how to cook your favourite meal"],
+    ["TEACH","How would you teach someone to ride a bike?"],
+    ["LEAD","What makes a great leader?"],
+    ["LISTEN","Why is listening a superpower?"],
+    ["CREATE","What do you love to create?"],
+    ["TRAVEL","Where would you travel and why?"],
+    ["HELP","Describe a time you helped someone"],
+    ["LEARN","How do you learn best?"],
+    ["CHANGE","What would you change about the world?"]
+  ],
+  story: [
+    ["ADVENTURE","Start a story with an adventure"],
+    ["MYSTERY","Begin a mysterious story"],
+    ["HERO","Describe your ideal hero"],
+    ["JOURNEY","Tell about an unforgettable journey"],
+    ["CHALLENGE","Talk about overcoming a challenge"],
+    ["DREAM","Describe your biggest dream"],
+    ["SURPRISE","Tell about an unexpected surprise"],
+    ["FRIENDSHIP","What does true friendship mean?"],
+    ["FUTURE","Describe your vision of the future"],
+    ["MEMORY","Share a childhood memory"]
+  ],
+  debate: [
+    ["TECHNOLOGY","Is technology good or bad for society?"],
+    ["SOCIAL MEDIA","Is social media helping us connect?"],
+    ["MONEY","Can money buy happiness?"],
+    ["EDUCATION","Should school be more practical?"],
+    ["NATURE","Why should we protect nature?"],
+    ["SPORTS","Are sports important for children?"],
+    ["BOOKS","Are books better than videos?"],
+    ["CITIES","Is city life better than village life?"],
+    ["ROBOTS","Will robots replace human jobs?"],
+    ["KINDNESS","Is kindness a sign of strength?"]
+  ],
+  mixed: []
+};
+Object.keys(BANKS).forEach(k => { if (k !== 'mixed') BANKS.mixed.push(...BANKS[k]); });
+
+let spd = 5, total = 10, cat = 'mixed';
+let queue = [], idx = 0, timeLeft = 0, ticker = null;
+let running = false, paused = false;
+
+function onSet() {
+  spd   = +document.getElementById('spd').value;
+  total = +document.getElementById('cnt').value;
+  cat   = document.getElementById('cat').value;
+  document.getElementById('spd-v').textContent = spd + 's';
+  document.getElementById('cnt-v').textContent = total;
+  if (!running) {
+    document.getElementById('wctr').textContent = `WORD 1 / ${total}`;
+    updateRing(spd, spd);
+  }
+}
+
+function shuffle(a) {
+  const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[b[i],b[j]]=[b[j],b[i]];} return b;
+}
+
+function buildQueue() {
+  queue = shuffle(BANKS[cat]).slice(0, total);
+}
+
+function updateRing(left, total) {
+  const pct = left / total;
+  document.getElementById('rf').style.strokeDashoffset = CIRC * (1 - pct);
+  const rt = document.getElementById('ring-t');
+  rt.textContent = left + 's';
+  rt.className = left <= 2 ? 'ring-time danger' : 'ring-time';
+  document.getElementById('prog-bar').style.transform = `scaleX(${pct})`;
+  document.getElementById('prog-bar').style.transition = 'transform 0.95s linear';
+}
+
+function updatePreview() {
+  const box = document.getElementById('queue-preview');
+  const upcoming = queue.slice(idx + 1, idx + 5);
+  if (!upcoming.length) { box.innerHTML = ''; return; }
+  box.innerHTML = upcoming.map((w, i) =>
+    `<div class="qw${i===0?' next':''}">${w[0]}</div>`
+  ).join('');
+}
+
+function showWord() {
+  if (idx >= queue.length) { endGame(); return; }
+  const [word, hint] = queue[idx];
+  timeLeft = spd;
+
+  document.getElementById('wctr').textContent = `WORD ${idx+1} / ${total}`;
+  document.getElementById('hint-label').textContent = hint;
+
+  const bw = document.getElementById('big-word');
+  bw.textContent = word;
+  bw.className = '';
+  void bw.offsetWidth;
+  bw.className = 'pop';
+
+  document.getElementById('speak-prompt').textContent = '🎙️ Speak now!';
+  document.getElementById('rf').style.stroke = '#f39c12';
+
+  updateRing(timeLeft, spd);
+  updatePreview();
+
+  clearInterval(ticker);
+  ticker = setInterval(() => {
+    if (paused) return;
+    timeLeft--;
+    updateRing(timeLeft, spd);
+    if (timeLeft <= 0) {
+      clearInterval(ticker);
+      idx++;
+      document.getElementById('speak-prompt').textContent = '⏭ Next word…';
+      setTimeout(() => { if (running) showWord(); }, 400);
+    }
+  }, 1000);
+}
+
+function startGame() {
+  if (running) return;
+  running = true; paused = false; idx = 0;
+  buildQueue();
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('main-card').style.display = 'flex';
+  document.getElementById('status').textContent = '🎙️ Just SPEAK — words auto-advance!';
+  showWord();
+}
+
+function togglePause() {
+  if (!running) return;
+  paused = !paused;
+  document.querySelector('.btn-pause').textContent = paused ? '▶ RESUME' : '⏸ PAUSE';
+  document.getElementById('speak-prompt').textContent = paused ? '⏸ Paused' : '🎙️ Speak now!';
+}
+
+function resetGame() {
+  clearInterval(ticker);
+  running = false; paused = false; idx = 0;
+  document.querySelector('.btn-pause').textContent = '⏸ PAUSE';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('main-card').style.display = 'flex';
+  document.getElementById('main-card').style.flexDirection = 'column';
+  document.getElementById('big-word').textContent = '?';
+  document.getElementById('hint-label').textContent = 'Get ready to speak!';
+  document.getElementById('speak-prompt').textContent = '';
+  document.getElementById('ring-t').textContent = '—';
+  document.getElementById('ring-t').className = 'ring-time';
+  document.getElementById('rf').style.strokeDashoffset = 0;
+  document.getElementById('prog-bar').style.transform = 'scaleX(1)';
+  document.getElementById('status').textContent = 'Press START — then just speak! 🎙️';
+  document.getElementById('wctr').textContent = `WORD 1 / ${total}`;
+  document.getElementById('queue-preview').innerHTML = '';
+}
+
+function endGame() {
+  running = false;
+  clearInterval(ticker);
+  const words = queue.map(w => w[0]).join(' · ');
+  document.getElementById('result-words').textContent =
+    `You spoke through ${total} words:\n${words}`;
+  document.getElementById('main-card').style.display = 'none';
+  document.getElementById('queue-preview').innerHTML = '';
+  document.getElementById('result').style.display = 'flex';
+  document.getElementById('status').textContent = '';
+}
+
+onSet();
+</script>
+</body>
+</html>
