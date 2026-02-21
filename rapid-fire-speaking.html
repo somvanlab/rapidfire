@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapid Fire Speaking</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+        h1 { color: #333; }
+        button { background-color: #28a745; color: white; border: none; padding: 10px 15px; margin-top: 10px; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        .timer { font-size: 2em; margin-top: 20px; }
+        .progress { width: 100%; background-color: #e0e0e0; }
+        .progress-bar { height: 30px; width: 0%; background-color: #4caf50; }
+    </style>
+</head>
+<body>
+    <h1>Rapid Fire Speaking</h1>
+    <p>Select Category:</p>
+    <select id="category">
+        <option value="emotions">Emotions</option>
+        <option value="describe">Describe It</option>
+        <option value="actions">Actions</option>
+        <option value="story">Story Words</option>
+        <option value="opinion">Opinion Topics</option>
+    </select>
+    <br>
+    <input type="number" id="wordCount" min="3" max="25" placeholder="Word Count (3-25)" />
+    <br>
+    <input type="number" id="timer" min="2" max="15" placeholder="Timer (2-15 seconds)" />
+    <div class="timer" id="timerDisplay">0</div>
+    <button id="startButton">Start</button>
+    <button id="pauseButton">Pause</button>
+    <button id="resumeButton">Resume</button>
+    <div class="progress">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <script>
+        let timer;
+        let isPaused = false;
+        const timerDisplay = document.getElementById('timerDisplay');
+        const progressBar = document.getElementById('progressBar');
+
+        document.getElementById('startButton').addEventListener('click', startTimer);
+        document.getElementById('pauseButton').addEventListener('click', pauseTimer);
+        document.getElementById('resumeButton').addEventListener('click', resumeTimer);
+
+        function startTimer() {
+            const wordCount = document.getElementById('wordCount').value;
+            const timerSetting = document.getElementById('timer').value;
+            if (!wordCount || !timerSetting) {
+                alert('Please set word count and timer!');
+                return;
+            }
+            let timeLeft = timerSetting;
+            progressBar.style.width = '100%';
+            timer = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    alert('Time is up!\nWords Spoken: ' + wordCount);
+                } else {
+                    timerDisplay.innerHTML = timeLeft;
+                    timeLeft--;
+                    updateProgressBar(timeLeft, timerSetting);
+                }
+            }, 1000);
+            isPaused = false;
+        }
+
+        function pauseTimer() {
+            if (timer) {
+                clearInterval(timer);
+                isPaused = true;
+            }
+        }
+
+        function resumeTimer() {
+            if (isPaused) {
+                startTimer();
+            }
+        }
+
+        function updateProgressBar(timeLeft, total) {
+            const percentage = (timeLeft / total) * 100;
+            progressBar.style.width = percentage + '%';
+        }
+    </script>
+</body>
+</html>
